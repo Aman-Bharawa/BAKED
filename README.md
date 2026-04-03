@@ -126,3 +126,7 @@ Then log in at:
 - subscription service for regular customer
 - analytics page for chef where chef can see orders, revenue etc.
 - add a better method for AI nutrition estimation.  
+
+##Video link
+
+"https://drive.google.com/file/d/1J-5o6zrvsSx5DLqMWZ3cPxaf_OFAvera/view?usp=sharing"
