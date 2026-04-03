@@ -103,16 +103,18 @@
               >{{ request.user.phone_number|default:"Not provided yet" }}</span
             >
           </div>
-          <div>
-            <strong>Rider availability</strong>
-            <span>
-              {% if request.user.is_available %}
-                Available
-              {% else %}
-                Offline
-              {% endif %}
-            </span>
-          </div>
+          {% if request.user.role == "rider" %}
+            <div>
+              <strong>Rider availability</strong>
+              <span>
+                {% if request.user.is_available %}
+                  Available
+                {% else %}
+                  Offline
+                {% endif %}
+              </span>
+            </div>
+          {% endif %}
         </div>
       </section>
     </main>
