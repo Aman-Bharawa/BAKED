@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Orders</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+    <a class="page-brand" href="{% url 'dashboard' %}">BAKED</a>
+    <main class="app-shell">
+        <aside class="side-nav">
+            <h2>Options</h2>
+            <div class="nav-links">
+                <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                <a class="nav-link" href="{% url 'resident-feed' %}">Browse Dishes</a>
+                <a class="nav-link" href="{% url 'resident-checkout' %}">Checkout</a>
+                <a class="nav-link" href="{% url 'resident-orders' %}">Order History</a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="nav-logout" type="submit">Log out</button>
+                </form>
+            </div>
+        </aside>
+        <section class="hero-copy">
+            <p class="eyebrow">Resident Orders</p>
+            <h1><span class="accent-text">Your</span> orders in one place.</h1>
+            <p class="intro">
+                Current orders.
+            </p>
+
+            <div class="role-grid">
+                {% for order in current_orders %}
+                    <article class="role-card">
+                        <span class="role-badge">{{ forloop.counter|stringformat:"02d" }}</span>
+                        <h2>{{ order.dish.name }}</h2>
+                        {% if order.dish.media %}
+                            {% with media_url=order.dish.media.url|lower %}
+                                {% if ".mp4" in media_url or ".webm" in media_url or ".ogg" in media_url or ".mov" in media_url %}
+                                    <video class="dish-media" controls>
+                                        <source src="{{ order.dish.media.url }}">
+                                        Your browser does not support video playback.
+                                    </video>
+                                {% else %}
+                                    <img class="dish-media" src="{{ order.dish.media.url }}" alt="{{ order.dish.name }}">
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        <p><strong>Chef:</strong> {{ order.chef.get_full_name|default:order.chef.username }}</p>
+                        <p><strong>Rider:</strong>
+                            {% if order.rider %}
+                                {{ order.rider.get_full_name|default:order.rider.username }}
+                            {% else %}
+                                Not assigned yet
+                            {% endif %}
+                        </p>
+                        <p><strong>Quantity:</strong> {{ order.quantity }}</p>
+                        <p><strong>Total:</strong> Rs. {{ order.total_price }}</p>
+                        <p><strong>Current Status:</strong> {{ order.get_status_display }}</p>
+                        <p><strong>Placed:</strong> {{ order.created_at }}</p>
+                    </article>
+                {% empty %}
+                    <article class="role-card">
+                        <span class="role-badge">00</span>
+                        <h2>No current orders</h2>
+                        <p>Your active orders will appear here until they are delivered.</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="panel-top">
+                <h2 class="accent-text">Notifications</h2>
+            </div>
+
+            {% if messages %}
+                <div class="feature-callout">
+                    {% for message in messages %}
+                        <span>{{ message }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="quick-notes">
+                {% for notification in notifications %}
+                    <div>
+                        <strong>{{ notification.title }}</strong>
+                        <span>{{ notification.message }}</span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>No notifications yet</strong>
+                        <span>Order updates will appear here.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="panel-top" style="margin-top: 24px;">
+                <span class="brand-pill">BAKED</span>
+                <h2>Past Orders</h2>
+                <p>Delivered orders move here automatically so residents can see order history separately.</p>
+            </div>
+            <div class="quick-notes">
+                {% for order in past_orders %}
+                    <div>
+                        <strong>{{ order.dish.name }}</strong>
+                        <span>
+                            Qty {{ order.quantity }} | Rs. {{ order.total_price }} | Delivered |
+                            Rider:
+                            {% if order.rider %}
+                                {{ order.rider.get_full_name|default:order.rider.username }}
+                            {% else %}
+                                Not assigned yet
+                            {% endif %}
+                        </span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>No past orders</strong>
+                        <span>Delivered orders will appear here once a rider completes them.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </section>
+    </main>
+</body>
+</html>

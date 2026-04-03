@@ -1,0 +1,197 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rider Jobs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+    <a class="page-brand" href="{% url 'dashboard' %}">BAKED</a>
+    <main class="app-shell">
+        <aside class="side-nav">
+            <h2>Options</h2>
+            <div class="nav-links">
+                <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                <a class="nav-link" href="{% url 'rider-jobs' %}">Delivery Jobs</a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="nav-logout" type="submit">Log out</button>
+                </form>
+            </div>
+        </aside>
+        <section class="hero-copy">
+            <p class="eyebrow">Rider Console</p>
+            <h1><span class="accent-text">Manage</span> assigned delivery jobs.</h1>
+            <p class="intro">
+                You can toggle availability, claim nearby open jobs, and move active orders through
+                <strong>Accepted</strong>, <strong>Picked Up</strong>, and <strong>Delivered</strong>.
+                You can handle only one active order at a time.
+            </p>
+
+            {% if request.user.is_available and not active_order_id %}
+                <div class="feature-callout">
+                    <strong>Nearby Open Jobs</strong>
+                    <span>You can claim any unassigned order within 2 km of the HomeChef pickup location.</span>
+                </div>
+            {% endif %}
+
+            {% if request.user.is_available and not active_order_id %}
+                <div class="role-grid">
+                    {% for order, distance in nearby_unassigned_orders %}
+                        <article class="role-card">
+                            <span class="role-badge">{{ forloop.counter|stringformat:"02d" }}</span>
+                            <h2>{{ order.dish.name }}</h2>
+                            {% if order.dish.media %}
+                                {% with media_url=order.dish.media.url|lower %}
+                                    {% if ".mp4" in media_url or ".webm" in media_url or ".ogg" in media_url or ".mov" in media_url %}
+                                        <video class="dish-media" controls>
+                                            <source src="{{ order.dish.media.url }}">
+                                            Your browser does not support video playback.
+                                        </video>
+                                    {% else %}
+                                        <img class="dish-media" src="{{ order.dish.media.url }}" alt="{{ order.dish.name }}">
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                            <p><strong>Resident:</strong> {{ order.resident.get_full_name|default:order.resident.username }}</p>
+                            <p><strong>Chef:</strong> {{ order.chef.get_full_name|default:order.chef.username }}</p>
+                            <p><strong>Distance:</strong> {{ distance }} km</p>
+                            <p><strong>Pickup Location:</strong> {{ order.chef.latitude }}, {{ order.chef.longitude }}</p>
+                            <p><strong>Quantity:</strong> {{ order.quantity }}</p>
+                            <p><strong>Total:</strong> Rs. {{ order.total_price }}</p>
+                            <form method="post" action="{% url 'rider-claim-job' order.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Claim Nearby Job</button>
+                            </form>
+                        </article>
+                    {% empty %}
+                        <article class="role-card">
+                            <span class="role-badge">00</span>
+                            <h2>No nearby open jobs</h2>
+                            <p>When a resident places an unassigned order within 2 km, it will appear here.</p>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="role-grid">
+                {% for order in orders %}
+                    <article class="role-card">
+                        <span class="role-badge">{{ forloop.counter|stringformat:"02d" }}</span>
+                        <h2>{{ order.dish.name }}</h2>
+                        {% if order.dish.media %}
+                            {% with media_url=order.dish.media.url|lower %}
+                                {% if ".mp4" in media_url or ".webm" in media_url or ".ogg" in media_url or ".mov" in media_url %}
+                                    <video class="dish-media" controls>
+                                        <source src="{{ order.dish.media.url }}">
+                                        Your browser does not support video playback.
+                                    </video>
+                                {% else %}
+                                    <img class="dish-media" src="{{ order.dish.media.url }}" alt="{{ order.dish.name }}">
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        <p><strong>Resident:</strong> {{ order.resident.get_full_name|default:order.resident.username }}</p>
+                        <p><strong>Chef:</strong> {{ order.chef.get_full_name|default:order.chef.username }}</p>
+                        <p><strong>Pickup Location:</strong> {{ order.chef.latitude }}, {{ order.chef.longitude }}</p>
+                        <p><strong>Quantity:</strong> {{ order.quantity }}</p>
+                        <p><strong>Total:</strong> Rs. {{ order.total_price }}</p>
+                        <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+
+                        {% if order.status == "assigned" and active_order_id == order.id %}
+                            <form method="post" action="{% url 'rider-accept-job' order.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Accept Job</button>
+                            </form>
+                        {% elif order.status == "assigned" %}
+                            <p><strong>Action:</strong> Finish your current active order first.</p>
+                        {% endif %}
+
+                        {% if order.status == "accepted" and active_order_id == order.id %}
+                            <form method="post" action="{% url 'rider-pickup-job' order.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Mark Picked Up</button>
+                            </form>
+                        {% endif %}
+
+                        {% if order.status == "picked_up" and active_order_id == order.id %}
+                            <form method="post" action="{% url 'rider-deliver-job' order.id %}">
+                                {% csrf_token %}
+                                <button type="submit">Mark Delivered</button>
+                            </form>
+                        {% endif %}
+                    </article>
+                {% empty %}
+                    <article class="role-card">
+                        <span class="role-badge">00</span>
+                        <h2>No rider jobs yet</h2>
+                        <p>Assigned jobs will appear here when residents place orders and matching succeeds.</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="panel-top">
+                <h2 class="accent-text">Notifications</h2>
+                <p>Pickup and delivery updates are shown here while you work through jobs.</p>
+            </div>
+
+            {% if messages %}
+                <div class="feature-callout">
+                    {% for message in messages %}
+                        <span>{{ message }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="quick-notes">
+                {% for notification in notifications %}
+                    <div>
+                        <strong>{{ notification.title }}</strong>
+                        <span>{{ notification.message }}</span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>No notifications yet</strong>
+                        <span>Your delivery updates will appear here.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="panel-top" style="margin-top: 24px;">
+                <h2 class="accent-text">Availability</h2>
+                <p>Keep yourself online to get orders.</p>
+            </div>
+
+            <div class="quick-notes">
+                <div>
+                    <strong>Current status</strong>
+                    <span>{% if request.user.is_available %}Available for delivery jobs{% else %}Offline{% endif %}</span>
+                </div>
+                <div>
+                    <strong>Capacity rule</strong>
+                    <span>You can receive a new job only after your current active order is delivered.</span>
+                </div>
+                <div>
+                    <strong>Mock location</strong>
+                    <span>{{ request.user.latitude }}, {{ request.user.longitude }}</span>
+                </div>
+            </div>
+
+            <form class="login-form" method="post" action="{% url 'rider-toggle-availability' %}">
+                {% csrf_token %}
+                <button type="submit">
+                    {% if request.user.is_available %}Go Offline{% else %}Go Online{% endif %}
+                </button>
+            </form>
+
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BAKED Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/login.css' %}" />
+  </head>
+  <body>
+    <a class="page-brand" href="{% url 'login' %}">BAKED</a>
+    <main class="hero-shell">
+      <section class="hero-copy">
+        <p class="eyebrow">Every taste, delivered.</p>
+        <h1>
+          <span class="accent-text">Homemade</span> meals, delivered to your
+          doorstep
+        </h1>
+        <p class="intro">
+          A food delivery platform where your neighborhood home chefs
+          cook,residents order, and riders deliver quickly.
+        </p>
+
+        <div class="role-grid">
+          {% for role in roles %}
+          <article class="role-card">
+            <span class="role-badge">{{ role.emoji }}</span>
+            <p>{{ role.tagline }}</p>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="login-panel">
+        <div class="panel-top">
+          <h2 class="accent-text">Role Login</h2>
+          <p>Choose your access type and login to continue.</p>
+        </div>
+
+        <form class="login-form" method="post">
+          {% csrf_token %} {% if form.non_field_errors %}
+          <div class="feature-callout">
+            {% for error in form.non_field_errors %}
+            <span>{{ error }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <label for="{{ form.role.id_for_label }}">Login as</label>
+          {{ form.role }} {% if form.role.errors %}
+          <small>{{ form.role.errors|join:", " }}</small>
+          {% endif %}
+
+          <label for="{{ form.username.id_for_label }}">Email address</label>
+          {{ form.username }} {% if form.username.errors %}
+          <small>{{ form.username.errors|join:", " }}</small>
+          {% endif %}
+
+          <label for="{{ form.password.id_for_label }}">Password</label>
+          {{ form.password }} {% if form.password.errors %}
+          <small>{{ form.password.errors|join:", " }}</small>
+          {% endif %}
+
+          <button type="submit">Continue</button>
+        </form>
+
+        <p class="auth-switch">
+          New here?
+          <a href="{% url 'signup' %}">Create an account</a>
+        </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

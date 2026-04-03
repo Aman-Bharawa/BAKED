@@ -1,0 +1,208 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Feed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+    <a class="page-brand" href="{% url 'dashboard' %}">BAKED</a>
+    <main class="app-shell">
+        <aside class="side-nav">
+            <h2>Options</h2>
+            <div class="nav-links">
+                <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                <a class="nav-link" href="{% url 'resident-feed' %}">Browse Dishes</a>
+                <a class="nav-link" href="{% url 'resident-checkout' %}">Checkout</a>
+                <a class="nav-link" href="{% url 'resident-orders' %}">Order History</a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="nav-logout" type="submit">Log out</button>
+                </form>
+            </div>
+        </aside>
+        <section class="hero-copy">
+            <p class="eyebrow">Resident Feed</p>
+            <h1><span class="accent-text">Browse</span> fresh dishes across the platform.</h1>
+            <p class="intro">
+                Enjoy delicious food from your neighbourhood HomeChef's kitchen. 
+            </p>
+
+            <div class="role-grid">
+                {% for dish in dishes %}
+                    <article class="role-card">
+                        <span class="role-badge">{{ forloop.counter|stringformat:"02d" }}</span>
+                        <h2>{{ dish.name }}</h2>
+                        {% if dish.media %}
+                            {% with media_url=dish.media.url|lower %}
+                                {% if ".mp4" in media_url or ".webm" in media_url or ".ogg" in media_url or ".mov" in media_url %}
+                                    <video class="dish-media" controls>
+                                        <source src="{{ dish.media.url }}">
+                                        Your browser does not support video playback.
+                                    </video>
+                                {% else %}
+                                    <img class="dish-media" src="{{ dish.media.url }}" alt="{{ dish.name }}">
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        <p><strong>Chef:</strong> {{ dish.chef.get_full_name|default:dish.chef.username }}</p>
+                        <p><strong>Location:</strong> {{ dish.chef.location_name }}</p>
+                        <p><strong>Meal Slot:</strong> {{ dish.get_meal_slot_display }}</p>
+                        <p>{{ dish.description|default:"Fresh homemade dish available today." }}</p>
+                        <p><strong>Price:</strong> Rs. {{ dish.price }}</p>
+                        <p><strong>Calories:</strong> {{ dish.estimated_calories }} kcal</p>
+                        <p><strong>Health Score:</strong> {{ dish.health_score }} / 10</p>
+                        <p><strong>Available:</strong> {{ dish.quantity_available }}</p>
+                        <p>
+                            <strong>Nutrition Source:</strong>
+                            {% if "USDA FoodData Central match:" in dish.nutrition_notes %}
+                                USDA FoodData Central
+                            {% else %}
+                                Heuristic
+                            {% endif %}
+                        </p>
+                        <p><strong>Nutrition Note:</strong> {{ dish.nutrition_notes }}</p>
+                        <p><strong>Tags:</strong>
+                            {% if dish.is_veg %}Veg{% endif %}
+                            {% if dish.is_keto %} Keto{% endif %}
+                            {% if dish.is_high_protein %} High Protein{% endif %}
+                            {% if dish.is_low_calorie %} Low Calorie{% endif %}
+                            {% if not dish.is_veg and not dish.is_keto and not dish.is_high_protein and not dish.is_low_calorie %}General{% endif %}
+                        </p>
+                        <form method="post" action="{% url 'add-to-cart' dish.id %}">
+                            {% csrf_token %}
+                            <label for="order-qty-{{ dish.id }}">Quantity</label>
+                            <input id="order-qty-{{ dish.id }}" name="quantity" type="number" min="1" max="{{ dish.quantity_available }}" value="1">
+                            <button type="submit">Add to cart</button>
+                        </form>
+                    </article>
+                {% empty %}
+                    <article class="role-card">
+                        <span class="role-badge">00</span>
+                        <h2>No live dishes found</h2>
+                        <p>There are no published dishes available right now.</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="panel-top">
+                <h2 class="accent-text">Cart</h2>
+                <p>Add dishes here first, then place the final order from checkout. Billing is Cash on Delivery only.</p>
+            </div>
+
+            {% if messages %}
+                <div class="feature-callout">
+                    {% for message in messages %}
+                        <span>{{ message }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="quick-notes">
+                {% for item in cart_items %}
+                    <div>
+                        <strong>{{ item.dish.name }}</strong>
+                        <span>Qty {{ item.quantity }} | Rs. {{ item.item_total }}</span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>Your cart is empty</strong>
+                        <span>Add dishes from the feed before going to checkout.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="feature-callout">
+                <strong>Billing Method</strong>
+                <span>Cash on Delivery (COD) only</span>
+            </div>
+
+            <form class="login-form" method="get" action="{% url 'resident-checkout' %}">
+                <button type="submit">Checkout | Rs. {{ cart_total }}</button>
+            </form>
+
+            <div class="panel-top" style="margin-top: 24px;">
+                <h2 class="accent-text">Notifications</h2>
+                <p>Know about the status of your current order.</p>
+            </div>
+
+            <div class="quick-notes">
+                {% for notification in notifications %}
+                    <div>
+                        <strong>{{ notification.title }}</strong>
+                        <span>{{ notification.message }}</span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>No notifications yet</strong>
+                        <span>Order updates will appear here once you place an order.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="panel-top" style="margin-top: 24px;">
+                <h2 class="accent-text">Current Orders</h2>
+                <p>Your active orders are listed here.</p>
+            </div>
+
+            <div class="quick-notes">
+                {% for order in current_orders %}
+                    <div>
+                        <strong>{{ order.dish.name }}</strong>
+                        <span>
+                            Qty {{ order.quantity }} | Rs. {{ order.total_price }} | Current: {{ order.get_status_display }} |
+                            Rider:
+                            {% if order.rider %}
+                                {{ order.rider.get_full_name|default:order.rider.username }}
+                            {% else %}
+                                Not assigned yet
+                            {% endif %}
+                        </span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>No current orders</strong>
+                        <span>Your active orders will appear here after you place one.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="panel-top" style="margin-top: 24px;">
+                <span class="brand-pill">BAKED</span>
+                <h2>Past Orders</h2>
+                <p>Delivered orders are listed here.</p>
+            </div>
+
+            <div class="quick-notes">
+                {% for order in past_orders %}
+                    <div>
+                        <strong>{{ order.dish.name }}</strong>
+                        <span>
+                            Qty {{ order.quantity }} | Rs. {{ order.total_price }} | Delivered |
+                            Rider:
+                            {% if order.rider %}
+                                {{ order.rider.get_full_name|default:order.rider.username }}
+                            {% else %}
+                                Not assigned yet
+                            {% endif %}
+                        </span>
+                    </div>
+                {% empty %}
+                    <div>
+                        <strong>No past orders</strong>
+                        <span>Delivered orders will show up here once a rider completes them.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </section>
+    </main>
+</body>
+</html>

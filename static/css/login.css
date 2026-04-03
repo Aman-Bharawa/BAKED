@@ -1,0 +1,366 @@
+:root {
+  --bg: #efefef;
+  --surface: rgba(255, 255, 255, 0.96);
+  --surface-strong: #ffffff;
+  --text: #111111;
+  --muted: #666666;
+  --primary: #1f1f1f;
+  --primary-deep: #000000;
+  --accent: #8a8a8a;
+  --brand-green: #006400;
+  --line: #bdbdbd;
+  --shadow: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  background-color: rgba(0, 0, 0, 0.307);
+  font-size: 15px;
+}
+
+.page-brand {
+  display: block;
+  width: fit-content;
+  margin: 18px 0 0 42px;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--brand-green);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.page-brand:hover {
+  color: var(--brand-green);
+}
+
+.hero-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 16px;
+  align-items: start;
+  padding: 14px 0 20px;
+}
+
+.app-shell {
+  width: min(1360px, calc(100% - 32px));
+  margin: 0 auto;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 220px 1.2fr 0.9fr;
+  gap: 16px;
+  align-items: start;
+  padding: 14px 0 20px;
+}
+
+.side-nav {
+  position: sticky;
+  top: 24px;
+  border: 1px solid #9f9f9f;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: none;
+  padding: 14px;
+}
+
+.side-nav h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.side-nav p {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.nav-links {
+  display: grid;
+  gap: 10px;
+}
+
+.nav-link,
+.nav-logout {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #b8b8b8;
+  border-radius: 2px;
+  background: #f8f8f8;
+  color: var(--text);
+  text-decoration: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-link:hover,
+.nav-logout:hover {
+  background: #ececec;
+}
+
+.hero-copy,
+.login-panel {
+  border: 1px solid #a9a9a9;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.hero-copy {
+  padding: 22px;
+  background: #ffffff;
+}
+
+.eyebrow,
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: #f2f2f2;
+  border: 1px solid #cfcfcf;
+  color: var(--brand-green);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.accent-text {
+  color: var(--brand-green);
+}
+
+.hero-copy h1 {
+  margin: 12px 0 10px;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  line-height: 1.2;
+}
+
+.intro {
+  max-width: 650px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.role-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-card {
+  padding: 14px;
+  border-radius: 2px;
+  background: var(--surface-strong);
+  border: 1px solid #c2c2c2;
+}
+
+.role-badge {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 2px;
+  background: #2a2a2a;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.role-card h2 {
+  margin: 18px 0 6px;
+  font-size: 1.05rem;
+}
+
+.role-card p,
+.panel-top p,
+.quick-notes span {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.role-card > .role-badge + p,
+.role-card > .role-badge + h2 {
+  margin-top: 18px;
+}
+
+.dish-media {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 200px;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  border-radius: 2px;
+  margin: 12px 0;
+  border: 1px solid #c3c3c3;
+  background: #f5f5f5;
+}
+
+.login-panel {
+  padding: 18px;
+  background: #ffffff;
+}
+
+.panel-top h2 {
+  margin: 12px 0 8px;
+  font-size: 1.5rem;
+}
+
+.login-form {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.feature-callout {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 2px;
+  background: #f6f6f6;
+  border: 1px solid #cfcfcf;
+}
+
+.feature-callout strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.feature-callout span {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.login-form label {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.login-form input,
+.login-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #bdbdbd;
+  border-radius: 2px;
+  background: #ffffff;
+  font: inherit;
+  color: var(--text);
+}
+
+.login-form input:focus,
+.login-form select:focus {
+  outline: 2px solid rgba(17, 17, 17, 0.12);
+  border-color: var(--primary);
+}
+
+.login-form button {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #111111;
+  border-radius: 2px;
+  background: #1a1a1a;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.login-form button:hover {
+  background: #303030;
+}
+
+.auth-switch {
+  margin: 18px 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.auth-switch a {
+  color: #111111;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+.quick-notes {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
+
+.quick-notes strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+@media (max-width: 960px) {
+  .hero-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .role-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-brand {
+    margin: 12px 0 0 18px;
+    font-size: 2rem;
+  }
+
+  .hero-copy,
+  .login-panel {
+    padding: 18px;
+    border-radius: 2px;
+  }
+
+  .hero-shell {
+    width: min(100% - 20px, 1180px);
+    padding: 16px 0 16px;
+  }
+
+  .app-shell {
+    width: min(100% - 20px, 1360px);
+    padding: 16px 0 16px;
+  }
+
+  .hero-copy h1 {
+    font-size: 2rem;
+  }
+
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
+}

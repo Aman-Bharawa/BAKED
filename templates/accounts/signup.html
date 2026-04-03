@@ -1,0 +1,157 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAKED Signup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+    <a class="page-brand" href="{% url 'login' %}">BAKED</a>
+    <main class="hero-shell">
+        <section class="hero-copy">
+            <p class="eyebrow">Start Your Journey</p>
+            <h1><span class="accent-text">Join</span> the neighborhood food network.</h1>
+            <p class="intro">
+                Sign up as a home chef, resident, or rider and continue your journey.
+            </p>
+
+            <div class="role-grid">
+                {% for role in roles %}
+                    <article class="role-card">
+                        <span class="role-badge">{{ role.emoji }}</span>
+                        <p>{{ role.tagline }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="panel-top">
+                <h2 class="accent-text">Create Account</h2>
+                <p>Register as a new user as a home chef, resident, or rider.</p>
+            </div>
+
+            <div class="feature-callout">
+                <strong>HomeChef onboarding</strong>
+                <span>Create your profile with your name and your location within the society.</span>
+            </div>
+
+            <form class="login-form" method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="feature-callout">
+                        {% for error in form.non_field_errors %}
+                            <span>{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="{{ form.full_name.id_for_label }}">Full name</label>
+                {{ form.full_name }}
+                {% if form.full_name.errors %}
+                    <small>{{ form.full_name.errors|join:", " }}</small>
+                {% endif %}
+
+                <label for="{{ form.role.id_for_label }}">Sign up as</label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                    <small>{{ form.role.errors|join:", " }}</small>
+                {% endif %}
+
+                <label for="{{ form.phone_number.id_for_label }}">Phone number</label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                    <small>{{ form.phone_number.errors|join:", " }}</small>
+                {% endif %}
+
+                <div id="vehicle-details-field" style="display: none;">
+                    <label for="{{ form.vehicle_details.id_for_label }}">Vehicle details</label>
+                    {{ form.vehicle_details }}
+                    {% if form.vehicle_details.errors %}
+                        <small>{{ form.vehicle_details.errors|join:", " }}</small>
+                    {% endif %}
+                </div>
+
+                <label for="{{ form.location_name.id_for_label }}">Location name</label>
+                {{ form.location_name }}
+                {% if form.location_name.errors %}
+                    <small>{{ form.location_name.errors|join:", " }}</small>
+                {% endif %}
+
+                <label for="{{ form.latitude.id_for_label }}">Latitude</label>
+                {{ form.latitude }}
+                {% if form.latitude.errors %}
+                    <small>{{ form.latitude.errors|join:", " }}</small>
+                {% endif %}
+
+                <label for="{{ form.longitude.id_for_label }}">Longitude</label>
+                {{ form.longitude }}
+                {% if form.longitude.errors %}
+                    <small>{{ form.longitude.errors|join:", " }}</small>
+                {% endif %}
+
+                <label for="{{ form.email.id_for_label }}">Email address</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <small>{{ form.email.errors|join:", " }}</small>
+                {% endif %}
+
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <small>{{ form.password.errors|join:", " }}</small>
+                {% endif %}
+
+                <button type="submit">Create account</button>
+            </form>
+
+            <p class="auth-switch">
+                Already have an account?
+                <a href="{% url 'login' %}">Log in here</a>
+            </p>
+
+            <div class="quick-notes">
+                <div>
+                    <strong>HomeChef setup</strong>
+                    <span>Create your profile with your name, location details, kitchen details, and starter menu.</span>
+                </div>
+                <div>
+                    <strong>Resident setup</strong>
+                    <span>Save your address and start exploring nearby homemade dishes.</span>
+                </div>
+                <div>
+                    <strong>Rider setup</strong>
+                    <span>Register your vehicle details and begin accepting delivery runs.</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const roleField = document.getElementById("id_role");
+        const vehicleDetailsField = document.getElementById("vehicle-details-field");
+
+        function toggleVehicleDetailsField() {
+            if (!roleField || !vehicleDetailsField) {
+                return;
+            }
+
+            if (roleField.value === "rider") {
+                vehicleDetailsField.style.display = "block";
+            } else {
+                vehicleDetailsField.style.display = "none";
+            }
+        }
+
+        toggleVehicleDetailsField();
+        if (roleField) {
+            roleField.addEventListener("change", toggleVehicleDetailsField);
+        }
+    </script>
+  </body>
+</html>
