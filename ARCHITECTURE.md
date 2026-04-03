@@ -121,14 +121,21 @@ here django admin still uses Django’s normal staff/superuser mechanism.
 
 ## Nutrition Design
 
-The nutrition pipeline is:
+The project uses a local heuristic nutrition pipeline.
 
-1. try USDA FoodData Central search using the dish name and description
-2. if USDA returns a usable food match, use its calorie data
-3. local Django logic used for derive tags and health score 
-4. The local heuristic is used if USDA fails,
+When a HomeChef creates a dish, the backend reads the dish name and description and evaluates food-related keywords. It first checks for a base dish type such as `paratha`, `rice`, `wrap`, `salad`, or `dessert` and assigns a starting calorie estimate. After that, it looks for ingredient and cooking-method keywords such as `paneer`, `chicken`, `egg`, `dal`, `fried`, `grilled`, `boiled`, `butter`, `cream`, `ghee`, `keto`, and `avocado`.
 
-By this approach the app runs smoothly even if Nutrition Api doesn't work.
+Using these detected keywords, the system calculates:
+- estimated calories
+- health score
+- veg tag
+- keto tag
+- high protein tag
+- low calorie tag
+
+The result is saved directly on the dish record along with a short `nutrition_notes` explanation, so the resident and chef interfaces can display the reasoning clearly.
+
+This design was chosen because it is simple, deterministic, explainable, and does not depend on any external API . Although it is not nutritionally exact, but it works well for an MVP
 
 ## Ordering Design
 

@@ -13,7 +13,7 @@ It is a Django Based MVP of Society Home-chef -- hyperlocal food ordering platfo
  - Backend -- Django
  - Database -- SQLite3
  - Auth -- custom JWT cookie authentication
- - AI nutrition --USDA Fooddata central for nutrition lookup with a local heuristic fallback
+ - AI nutrition --a local heuristic logic is used
 
 
 ## Main Features 
@@ -45,11 +45,7 @@ It is a Django Based MVP of Society Home-chef -- hyperlocal food ordering platfo
 
 ## Nutrition Logic:
 
-1. system first try for USDA FoodData central
-2. if USDA is unavailable or does not return a useful match, then system fall back to the 
-   local heuristics estimator
-
-The heuristic logic still used for app-specific tags and scoring.
+1. A heuristic logic is used for nutrition note, health score and     calorie. 
 
 ## Local setup
  - change directory to the project directory
@@ -58,21 +54,6 @@ The heuristic logic still used for app-specific tags and scoring.
  - python manage.py migrate
  - python manage.py runserver
  - and open 'http://127.0.0.1:8000/'
-
-## Optional USDA API Setup
-
-The app works without a USDA key because it falls back to the heuristic estimator.
-
-To use your own USDA key:
-
-```powershell
-$env:USDA_API_KEY="your_usda_key"
-python manage.py runserver
-```
-
-You can request a key here:
-
-- `https://fdc.nal.usda.gov/api-key-signup.html`
 
 ## Admin Account
 
