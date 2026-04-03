@@ -60,11 +60,7 @@
                         <p><strong>Available:</strong> {{ dish.quantity_available }}</p>
                         <p>
                             <strong>Nutrition Source:</strong>
-                            {% if "USDA FoodData Central match:" in dish.nutrition_notes %}
-                                USDA FoodData Central
-                            {% else %}
-                                Heuristic
-                            {% endif %}
+                            Heuristic
                         </p>
                         <p><strong>Nutrition Note:</strong> {{ dish.nutrition_notes }}</p>
                         <p><strong>Tags:</strong>

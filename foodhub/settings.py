@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -24,8 +23,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-zn^ecj%8p=)9hr#_jd@iona%kr+uqjy)tx%bb8051e-txl@$)o'
 JWT_SECRET_KEY = SECRET_KEY
 JWT_EXPIRATION_SECONDS = 60 * 60 * 24
-USDA_API_KEY = os.getenv("USDA_API_KEY", "DEMO_KEY")
-USDA_SEARCH_URL = os.getenv("USDA_SEARCH_URL", "https://api.nal.usda.gov/fdc/v1/foods/search")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
