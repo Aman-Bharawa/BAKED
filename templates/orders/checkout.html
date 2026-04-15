@@ -52,6 +52,7 @@
                         {% endif %}
                         <p><strong>Chef:</strong> {{ item.dish.chef.get_full_name|default:item.dish.chef.username }}</p>
                         <p><strong>Meal Slot:</strong> {{ item.dish.get_meal_slot_display }}</p>
+                        <p><strong>Available:</strong> {{ item.dish.quantity_available }}</p>
                         <p><strong>Quantity:</strong> {{ item.quantity }}</p>
                         <p><strong>Item Total:</strong> Rs. {{ item.item_total }}</p>
                         <p><strong>Heuristic Note:</strong> {{ item.dish.nutrition_notes }}</p>

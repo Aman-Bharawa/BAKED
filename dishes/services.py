@@ -20,11 +20,44 @@ BASE_CALORIES = {
     "pasta": 310,
 }
 
+INGREDIENT_PROFILES = {
+    "paneer": {
+        "calories_per_unit": Decimal("2.67"),
+        "default_units": 30,
+        "units_by_base": {"wrap": 35, "sandwich": 30, "curry": 55, "pizza": 45, "burger": 35},
+        "health": 0.8,
+        "protein": 2,
+        "veg": True,
+        "note": "Paneer boosts protein but adds fat.",
+    },
+    "chicken": {
+        "calories_per_unit": Decimal("1.9"),
+        "default_units": 70,
+        "units_by_base": {"sandwich": 55, "wrap": 60, "burger": 65, "salad": 60, "curry": 105, "biryani": 95, "pizza": 70, "pasta": 80, "noodles": 80},
+        "health": 1.0,
+        "protein": 3,
+        "note": "Chicken improves protein density.",
+    },
+    "egg": {
+        "calories_per_unit": Decimal("1.55"),
+        "default_units": 45,
+        "units_by_base": {"sandwich": 40, "wrap": 45, "burger": 50, "salad": 35, "curry": 60},
+        "health": 0.8,
+        "protein": 2,
+        "note": "Egg adds balanced protein.",
+    },
+    "dal": {
+        "calories_per_unit": Decimal("1.1"),
+        "default_units": 55,
+        "units_by_base": {"soup": 70, "curry": 80, "rice": 45},
+        "health": 1.2,
+        "protein": 2,
+        "veg": True,
+        "note": "Dal supports fiber and protein.",
+    },
+}
+
 KEYWORD_RULES = {
-    "paneer": {"calories": 80, "health": 0.8, "protein": 2, "veg": True, "note": "Paneer boosts protein but adds fat."},
-    "chicken": {"calories": 90, "health": 1.0, "protein": 3, "note": "Chicken improves protein density."},
-    "egg": {"calories": 70, "health": 0.8, "protein": 2, "note": "Egg adds balanced protein."},
-    "dal": {"calories": 60, "health": 1.2, "protein": 2, "veg": True, "note": "Dal supports fiber and protein."},
     "salad": {"calories": -20, "health": 1.8, "veg": True, "low_calorie": True, "note": "Salad usually means a lighter dish."},
     "grilled": {"calories": -30, "health": 1.6, "low_calorie": True, "note": "Grilled dishes are usually lighter than fried ones."},
     "boiled": {"calories": -40, "health": 1.4, "low_calorie": True, "note": "Boiled preparation reduces added fat."},
@@ -40,9 +73,56 @@ KEYWORD_RULES = {
 }
 
 
-def estimate_dish_nutrition(name, description=""):
+def extract_main_ingredient(description):
+    if not description:
+        return ""
+
+    match = re.search(
+        r"main ingredient\s*:\s*([a-zA-Z][a-zA-Z\s]{1,40})",
+        description,
+        re.IGNORECASE,
+    )
+    if not match:
+        return ""
+
+    ingredient_name = match.group(1).strip().lower()
+    ingredient_name = re.split(r"[.,;\n]", ingredient_name)[0].strip()
+    return ingredient_name
+
+
+def detect_base_item(text):
+    for word, value in BASE_CALORIES.items():
+        if re.search(rf"\b{re.escape(word)}\b", text):
+            return word, value
+    return None, 180
+
+
+def calculate_ingredient_calories(word, values, base_item, text, main_ingredient_amount=None):
+    units = values.get("default_units", 0)
+
+    if base_item:
+        units = values.get("units_by_base", {}).get(base_item, units)
+
+    if main_ingredient_amount:
+        units = int(main_ingredient_amount)
+
+    if re.search(r"\bmini\b|\bsmall\b", text):
+        units = int(units * 0.8)
+
+    if re.search(r"\blarge\b|\bloaded\b|\bfull\b", text):
+        units = int(units * 1.25)
+
+    calories = int((values["calories_per_unit"] * Decimal(str(units))).quantize(Decimal("1")))
+    return calories, units
+
+
+def estimate_dish_nutrition(name, description="", main_ingredient_amount=None):
+    main_ingredient_name = extract_main_ingredient(description)
     text = f"{name} {description}".lower()
-    calories = 180
+    if main_ingredient_name and not re.search(rf"\b{re.escape(main_ingredient_name)}\b", text):
+        text = f"{text} {main_ingredient_name}"
+
+    base_item, calories = detect_base_item(text)
     health_score = Decimal("5.0")
     protein_points = 0
     is_veg = True
@@ -50,11 +130,37 @@ def estimate_dish_nutrition(name, description=""):
     notes = []
     low_calorie_match = False
 
-    for word, value in BASE_CALORIES.items():
+    if base_item:
+        notes.append(f"Base calories set from '{base_item}'.")
+
+    if main_ingredient_name:
+        notes.append(f"Main ingredient taken from description: {main_ingredient_name}.")
+
+    for word, values in INGREDIENT_PROFILES.items():
         if re.search(rf"\b{re.escape(word)}\b", text):
-            calories = value
-            notes.append(f"Base calories set from '{word}'.")
-            break
+            ingredient_calories, estimated_units = calculate_ingredient_calories(
+                word,
+                values,
+                base_item,
+                text,
+                main_ingredient_amount,
+            )
+            calories += ingredient_calories
+            health_score += Decimal(str(values.get("health", 0)))
+            protein_points += values.get("protein", 0)
+
+            if "veg" in values:
+                is_veg = values["veg"]
+            else:
+                is_veg = is_veg and word not in {"chicken", "egg"}
+
+            note = values.get("note")
+            if note:
+                notes.append(note)
+            if main_ingredient_amount:
+                notes.append(f"{word.title()} amount used from chef input: about {estimated_units} g/ml.")
+            else:
+                notes.append(f"{word.title()} portion estimated around {estimated_units} g/ml for this dish style.")
 
     for word, values in KEYWORD_RULES.items():
         if re.search(rf"\b{re.escape(word)}\b", text):
@@ -66,8 +172,6 @@ def estimate_dish_nutrition(name, description=""):
 
             if "veg" in values:
                 is_veg = values["veg"]
-            else:
-                is_veg = is_veg and word not in {"chicken", "egg"}
 
             note = values.get("note")
             if note:
@@ -106,5 +210,5 @@ def estimate_dish_nutrition(name, description=""):
     }
 
 
-def estimate_dish_nutrition_with_fallback(name, description="", media=None):
-    return estimate_dish_nutrition(name, description)
+def estimate_dish_nutrition_with_fallback(name, description="", media=None, main_ingredient_amount=None):
+    return estimate_dish_nutrition(name, description, main_ingredient_amount)

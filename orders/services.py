@@ -1,4 +1,5 @@
 from decimal import Decimal
+from random import randint
 
 from accounts.models import User
 
@@ -74,3 +75,9 @@ def create_notification(recipient, title, message, order=None):
         message=message,
         order=order,
     )
+
+
+def generate_order_otps():
+    pickup_otp = str(randint(1000, 9999))
+    delivery_otp = str(randint(1000, 9999))
+    return pickup_otp, delivery_otp

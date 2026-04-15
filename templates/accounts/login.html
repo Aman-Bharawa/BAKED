@@ -13,9 +13,19 @@
     />
     <link rel="stylesheet" href="{% static 'css/login.css' %}" />
   </head>
-  <body>
+  <body class="splash-active">
+    <div class="logo-splash" aria-hidden="true">
+      <div class="logo-splash-mark">
+        <span>B</span>
+        <span>A</span>
+        <span>K</span>
+        <span>E</span>
+        <span>D</span>
+      </div>
+      <p class="logo-splash-tag">Every taste, delivered.</p>
+    </div>
     <a class="page-brand" href="{% url 'login' %}">BAKED</a>
-    <main class="hero-shell">
+    <main class="hero-shell login-stage">
       <section class="hero-copy">
         <p class="eyebrow">Every taste, delivered.</p>
         <h1>
@@ -77,5 +87,12 @@
         </div>
       </section>
     </main>
+    <script>
+      window.addEventListener("load", function () {
+        window.setTimeout(function () {
+          document.body.classList.remove("splash-active");
+        }, 2800);
+      });
+    </script>
   </body>
 </html>

@@ -20,6 +20,7 @@ class Dish(models.Model):
         choices=MealSlot.choices,
         default=MealSlot.LUNCH,
     )
+    main_ingredient_amount = models.PositiveIntegerField(blank=True, null=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     quantity_available = models.PositiveIntegerField()
     media = models.FileField(upload_to="dish_media/", blank=True, null=True)

@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
+from orders.models import Order
+
 from .forms import DishForm
 from .models import Dish
 from .services import estimate_dish_nutrition_with_fallback
@@ -33,6 +35,7 @@ def chef_dishes_view(request):
             dish.name,
             dish.description,
             dish.media,
+            dish.main_ingredient_amount,
         )
         dish.estimated_calories = nutrition["estimated_calories"]
         dish.health_score = nutrition["health_score"]
@@ -50,9 +53,13 @@ def chef_dishes_view(request):
         quantity_available__gt=0,
         is_sold_out=False,
     )
+    current_orders = Order.objects.filter(chef=request.user).exclude(
+        status=Order.Status.DELIVERED
+    ).select_related("dish", "resident", "rider")[:8]
     context = {
         "form": form,
         "dishes": dishes,
+        "current_orders": current_orders,
     }
     return render(request, "dishes/chef_dishes.html", context)
 

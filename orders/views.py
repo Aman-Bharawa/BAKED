@@ -10,7 +10,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from dishes.models import Dish
 
 from .models import Notification, Order
-from .services import create_notification, find_nearest_available_rider, get_nearby_unassigned_orders_for_rider
+from .services import (
+    create_notification,
+    generate_order_otps,
+    get_nearby_unassigned_orders_for_rider,
+)
 
 
 def resident_required(view_func):
@@ -28,6 +32,16 @@ def rider_required(view_func):
     def check_role(request, *args, **kwargs):
         if request.user.role != "rider":
             return HttpResponseForbidden("Only riders can access this page.")
+        return view_func(request, *args, **kwargs)
+
+    return check_role
+
+
+def chef_required(view_func):
+    @wraps(view_func)
+    def check_role(request, *args, **kwargs):
+        if request.user.role != "chef":
+            return HttpResponseForbidden("Only chefs can access this page.")
         return view_func(request, *args, **kwargs)
 
     return check_role
@@ -71,46 +85,20 @@ def build_cart_items(request):
     return items, total
 
 
-def create_order_notifications(order, rider, distance):
-    if rider:
-        order.rider = rider
-        order.status = Order.Status.ASSIGNED
-        order.save(update_fields=["rider", "status", "updated_at"])
-
-        rider_name = rider.get_full_name() or rider.username
-        create_notification(
-            order.resident,
-            "Rider assigned",
-            f"{rider_name} was assigned to your order for {order.dish.name}.",
-            order,
-        )
-        create_notification(
-            rider,
-            "New assigned order",
-            f"You were auto-assigned to pick up {order.dish.name}.",
-            order,
-        )
-        create_notification(
-            order.chef,
-            "New order received",
-            f"A resident ordered {order.quantity}x {order.dish.name}.",
-            order,
-        )
-        return f"Order placed and assigned to the nearest rider within {distance} km."
-
+def create_order_notifications(order):
     create_notification(
         order.resident,
         "Order placed",
-        f"Your order for {order.dish.name} is waiting for a rider to claim it.",
+        f"Your order for {order.dish.name} is waiting for a rider to claim it. Delivery OTP {order.delivery_otp} is ready for final handoff.",
         order,
     )
     create_notification(
         order.chef,
         "New order received",
-        f"A resident ordered {order.quantity}x {order.dish.name}. Rider assignment is pending.",
+        f"A resident ordered {order.quantity}x {order.dish.name}. Rider assignment is pending. Pickup OTP {order.pickup_otp} will be used when the rider arrives.",
         order,
     )
-    return "Order placed successfully. No nearby rider was available within 2 km."
+    return "Order placed successfully. Nearby online riders can now accept it."
 
 
 @login_required
@@ -219,6 +207,7 @@ def place_order_view(request, dish_id):
             current_dish.is_sold_out = True
         current_dish.save(update_fields=["quantity_available", "is_sold_out", "updated_at"])
 
+        pickup_otp, delivery_otp = generate_order_otps()
         order = Order.objects.create(
             resident=request.user,
             chef=current_dish.chef,
@@ -226,10 +215,11 @@ def place_order_view(request, dish_id):
             quantity=qty,
             total_price=current_dish.price * qty,
             status=Order.Status.PLACED,
+            pickup_otp=pickup_otp,
+            delivery_otp=delivery_otp,
         )
 
-        rider, distance = find_nearest_available_rider(order)
-        message = create_order_notifications(order, rider, distance)
+        message = create_order_notifications(order)
 
     messages.success(request, message)
     return redirect("resident-feed")
@@ -269,6 +259,7 @@ def checkout_view(request):
                     dish.is_sold_out = True
                 dish.save(update_fields=["quantity_available", "is_sold_out", "updated_at"])
 
+                pickup_otp, delivery_otp = generate_order_otps()
                 order = Order.objects.create(
                     resident=request.user,
                     chef=dish.chef,
@@ -276,10 +267,11 @@ def checkout_view(request):
                     quantity=qty,
                     total_price=dish.price * qty,
                     status=Order.Status.PLACED,
+                    pickup_otp=pickup_otp,
+                    delivery_otp=delivery_otp,
                 )
 
-                rider, distance = find_nearest_available_rider(order)
-                info_messages.append(create_order_notifications(order, rider, distance))
+                info_messages.append(create_order_notifications(order))
 
         save_cart(request, {})
         messages.success(request, "Checkout completed with Cash on Delivery.")
@@ -314,6 +306,49 @@ def resident_orders_view(request):
         "notifications": notifications,
     }
     return render(request, "orders/resident_orders.html", context)
+
+
+@login_required
+@chef_required
+def chef_verify_pickup_view(request, order_id):
+    if request.method != "POST":
+        return redirect("chef-dishes")
+
+    order = get_object_or_404(
+        Order.objects.select_related("rider", "dish", "resident"),
+        id=order_id,
+        chef=request.user,
+    )
+
+    if order.status != Order.Status.ACCEPTED:
+        messages.error(request, "This order is not ready for pickup verification yet.")
+        return redirect("chef-dishes")
+
+    entered_otp = (request.POST.get("pickup_otp") or "").strip()
+    if entered_otp != order.pickup_otp:
+        messages.error(request, "Pickup OTP did not match. Please verify the rider again.")
+        return redirect("chef-dishes")
+
+    order.status = Order.Status.PICKED_UP
+    order.pickup_verified = True
+    order.save(update_fields=["status", "pickup_verified", "updated_at"])
+
+    rider_name = order.rider.get_full_name() or order.rider.username
+    create_notification(
+        order.rider,
+        "Pickup verified",
+        f"{request.user.get_full_name() or request.user.username} verified pickup for {order.dish.name}. You can now deliver it.",
+        order,
+    )
+    create_notification(
+        order.resident,
+        "Order update",
+        f"{rider_name} collected your order for {order.dish.name}. Share delivery OTP {order.delivery_otp} only after you receive it.",
+        order,
+    )
+
+    messages.success(request, "Pickup OTP verified. The rider can now deliver this order.")
+    return redirect("chef-dishes")
 
 
 @login_required
@@ -465,13 +500,7 @@ def rider_accept_job_view(request, order_id):
 @rider_required
 def rider_pickup_job_view(request, order_id):
     if request.method == "POST":
-        return update_rider_order_status(
-            request,
-            order_id,
-            Order.Status.ACCEPTED,
-            Order.Status.PICKED_UP,
-            "Order marked as picked up.",
-        )
+        messages.info(request, "Pickup is verified by the HomeChef using the pickup OTP.")
     return redirect("rider-jobs")
 
 
@@ -479,11 +508,43 @@ def rider_pickup_job_view(request, order_id):
 @rider_required
 def rider_deliver_job_view(request, order_id):
     if request.method == "POST":
-        return update_rider_order_status(
-            request,
-            order_id,
-            Order.Status.PICKED_UP,
-            Order.Status.DELIVERED,
-            "Order marked as delivered.",
+        order = get_object_or_404(Order, id=order_id, rider=request.user)
+
+        other_active = Order.objects.filter(rider=request.user).exclude(id=order.id).exclude(
+            status=Order.Status.DELIVERED
+        ).exists()
+        if other_active:
+            messages.error(
+                request,
+                "You already have another active order. Deliver it first before taking action on a new one.",
+            )
+            return redirect("rider-jobs")
+
+        if order.status != Order.Status.PICKED_UP:
+            messages.error(request, "This order is not ready for delivery verification yet.")
+            return redirect("rider-jobs")
+
+        entered_otp = (request.POST.get("delivery_otp") or "").strip()
+        if entered_otp != order.delivery_otp:
+            messages.error(request, "Delivery OTP did not match. Please confirm it with the resident.")
+            return redirect("rider-jobs")
+
+        order.status = Order.Status.DELIVERED
+        order.delivery_verified = True
+        order.save(update_fields=["status", "delivery_verified", "updated_at"])
+
+        rider_name = order.rider.get_full_name() or order.rider.username
+        create_notification(
+            order.resident,
+            "Order update",
+            f"{rider_name} delivered your order for {order.dish.name}.",
+            order,
         )
+        create_notification(
+            order.chef,
+            "Order update",
+            f"{order.dish.name} was delivered to the resident.",
+            order,
+        )
+        messages.success(request, "Delivery OTP verified and order marked as delivered.")
     return redirect("rider-jobs")

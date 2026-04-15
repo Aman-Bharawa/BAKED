@@ -6,7 +6,6 @@ from dishes.models import Dish
 
 from .models import Notification
 from .models import Order
-from .services import find_nearest_available_rider
 
 
 class OrderFlowTests(TestCase):
@@ -81,6 +80,18 @@ class OrderFlowTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def login_chef(self):
+        response = self.client.post(
+            "/",
+            {
+                "role": "chef",
+                "username": self.chef.email,
+                "password": "Strong123",
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_add_to_cart_and_checkout_reduce_inventory(self):
         self.login_resident()
 
@@ -103,6 +114,9 @@ class OrderFlowTests(TestCase):
         order = Order.objects.get(resident=self.resident, dish=self.dish)
         self.assertEqual(order.quantity, 2)
         self.assertEqual(self.dish.quantity_available, 3)
+        self.assertEqual(len(order.pickup_otp), 4)
+        self.assertEqual(len(order.delivery_otp), 4)
+        self.assertEqual(order.status, Order.Status.PLACED)
 
     def test_checkout_rejects_non_cod_payment(self):
         self.login_resident()
@@ -120,39 +134,23 @@ class OrderFlowTests(TestCase):
         self.assertContains(response, "Only Cash on Delivery is available.")
         self.assertEqual(Order.objects.count(), 0)
 
-    def test_busy_rider_is_skipped_for_new_assignment(self):
-        second_rider = User.objects.create_user(
-            username="rider-free",
-            email="rider-free@example.com",
-            password="Strong123",
-            role="rider",
-            location_name="Palm Meadows",
-            phone_number="9876543214",
-            latitude="28.459800",
-            longitude="77.026900",
-            is_available=True,
-        )
-        Order.objects.create(
-            resident=self.resident,
-            chef=self.chef,
-            dish=self.dish,
-            rider=self.rider,
-            quantity=1,
-            total_price="150.00",
-            status=Order.Status.ACCEPTED,
-        )
-        new_order = Order.objects.create(
-            resident=self.resident,
-            chef=self.chef,
-            dish=self.dish,
-            quantity=1,
-            total_price="150.00",
-            status=Order.Status.PLACED,
+    def test_checkout_keeps_order_unassigned_until_rider_accepts(self):
+        self.login_resident()
+
+        session = self.client.session
+        session["cart"] = {str(self.dish.id): 1}
+        session.save()
+
+        response = self.client.post(
+            "/resident/checkout/",
+            {"billing_method": "cod"},
+            follow=True,
         )
 
-        assigned_rider, _ = find_nearest_available_rider(new_order)
-
-        self.assertEqual(assigned_rider, second_rider)
+        self.assertEqual(response.status_code, 200)
+        order = Order.objects.get(resident=self.resident, dish=self.dish)
+        self.assertIsNone(order.rider)
+        self.assertEqual(order.status, Order.Status.PLACED)
 
     def test_free_rider_can_claim_nearby_unassigned_order(self):
         self.login_rider()
@@ -195,3 +193,41 @@ class OrderFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         resident_notification = Notification.objects.filter(recipient=self.resident).latest("created_at")
         self.assertIn(self.rider.get_full_name() or self.rider.username, resident_notification.message)
+
+    def test_pickup_and_delivery_require_matching_otps(self):
+        order = Order.objects.create(
+            resident=self.resident,
+            chef=self.chef,
+            dish=self.dish,
+            rider=self.rider,
+            quantity=1,
+            total_price="150.00",
+            status=Order.Status.ACCEPTED,
+            pickup_otp="4321",
+            delivery_otp="9876",
+        )
+
+        self.login_chef()
+        pickup_response = self.client.post(
+            f"/chef/orders/{order.id}/verify-pickup/",
+            {"pickup_otp": "4321"},
+            follow=True,
+        )
+
+        self.assertEqual(pickup_response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.PICKED_UP)
+        self.assertTrue(order.pickup_verified)
+
+        self.client = Client()
+        self.login_rider()
+        deliver_response = self.client.post(
+            f"/rider/jobs/{order.id}/deliver/",
+            {"delivery_otp": "9876"},
+            follow=True,
+        )
+
+        self.assertEqual(deliver_response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.DELIVERED)
+        self.assertTrue(order.delivery_verified)

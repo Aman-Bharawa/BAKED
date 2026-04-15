@@ -35,47 +35,56 @@
 
             <div class="role-grid">
                 {% for dish in dishes %}
-                    <article class="role-card">
-                        <span class="role-badge">{{ forloop.counter|stringformat:"02d" }}</span>
-                        <h2>{{ dish.name }}</h2>
-                        {% if dish.media %}
-                            {% with media_url=dish.media.url|lower %}
-                                {% if ".mp4" in media_url or ".webm" in media_url or ".ogg" in media_url or ".mov" in media_url %}
-                                    <video class="dish-media" controls>
-                                        <source src="{{ dish.media.url }}">
-                                        Your browser does not support video playback.
-                                    </video>
-                                {% else %}
-                                    <img class="dish-media" src="{{ dish.media.url }}" alt="{{ dish.name }}">
+                    <article class="role-card resident-dish-card">
+                        <details class="dish-toggle">
+                            <summary class="dish-summary">
+                                {% if dish.media %}
+                                    {% with media_url=dish.media.url|lower %}
+                                        {% if ".mp4" in media_url or ".webm" in media_url or ".ogg" in media_url or ".mov" in media_url %}
+                                            <video class="dish-media dish-media-preview" controls playsinline preload="metadata">
+                                                <source src="{{ dish.media.url }}">
+                                                Your browser does not support video playback.
+                                            </video>
+                                        {% else %}
+                                            <img class="dish-media dish-media-preview" src="{{ dish.media.url }}" alt="{{ dish.name }}">
+                                        {% endif %}
+                                    {% endwith %}
                                 {% endif %}
-                            {% endwith %}
-                        {% endif %}
-                        <p><strong>Chef:</strong> {{ dish.chef.get_full_name|default:dish.chef.username }}</p>
-                        <p><strong>Location:</strong> {{ dish.chef.location_name }}</p>
-                        <p><strong>Meal Slot:</strong> {{ dish.get_meal_slot_display }}</p>
-                        <p>{{ dish.description|default:"Fresh homemade dish available today." }}</p>
-                        <p><strong>Price:</strong> Rs. {{ dish.price }}</p>
-                        <p><strong>Calories:</strong> {{ dish.estimated_calories }} kcal</p>
-                        <p><strong>Health Score:</strong> {{ dish.health_score }} / 10</p>
-                        <p><strong>Available:</strong> {{ dish.quantity_available }}</p>
-                        <p>
-                            <strong>Nutrition Source:</strong>
-                            Heuristic
-                        </p>
-                        <p><strong>Nutrition Note:</strong> {{ dish.nutrition_notes }}</p>
-                        <p><strong>Tags:</strong>
-                            {% if dish.is_veg %}Veg{% endif %}
-                            {% if dish.is_keto %} Keto{% endif %}
-                            {% if dish.is_high_protein %} High Protein{% endif %}
-                            {% if dish.is_low_calorie %} Low Calorie{% endif %}
-                            {% if not dish.is_veg and not dish.is_keto and not dish.is_high_protein and not dish.is_low_calorie %}General{% endif %}
-                        </p>
-                        <form method="post" action="{% url 'add-to-cart' dish.id %}">
-                            {% csrf_token %}
-                            <label for="order-qty-{{ dish.id }}">Quantity</label>
-                            <input id="order-qty-{{ dish.id }}" name="quantity" type="number" min="1" max="{{ dish.quantity_available }}" value="1">
-                            <button type="submit">Add to cart</button>
-                        </form>
+                                <div class="dish-summary-copy">
+                                    <h2>{{ dish.name }}</h2>
+                                    <p class="dish-price-faded">Rs. {{ dish.price }}</p>
+                                </div>
+                            </summary>
+
+                            <div class="dish-detail-body">
+                                <p><strong>Chef:</strong> {{ dish.chef.get_full_name|default:dish.chef.username }}</p>
+                                <p><strong>Location:</strong> {{ dish.chef.location_name }}</p>
+                                <p><strong>Meal Slot:</strong> {{ dish.get_meal_slot_display }}</p>
+                                <p>{{ dish.description|default:"Fresh homemade dish available today." }}</p>
+                                <p><strong>Price:</strong> Rs. {{ dish.price }}</p>
+                                <p><strong>Calories:</strong> {{ dish.estimated_calories }} kcal</p>
+                                <p><strong>Health Score:</strong> {{ dish.health_score }} / 10</p>
+                                <p><strong>Available:</strong> {{ dish.quantity_available }}</p>
+                                <p>
+                                    <strong>Nutrition Source:</strong>
+                                    Heuristic
+                                </p>
+                                <p><strong>Nutrition Note:</strong> {{ dish.nutrition_notes }}</p>
+                                <p><strong>Tags:</strong>
+                                    {% if dish.is_veg %}Veg{% endif %}
+                                    {% if dish.is_keto %} Keto{% endif %}
+                                    {% if dish.is_high_protein %} High Protein{% endif %}
+                                    {% if dish.is_low_calorie %} Low Calorie{% endif %}
+                                    {% if not dish.is_veg and not dish.is_keto and not dish.is_high_protein and not dish.is_low_calorie %}General{% endif %}
+                                </p>
+                                <form method="post" action="{% url 'add-to-cart' dish.id %}">
+                                    {% csrf_token %}
+                                    <label for="order-qty-{{ dish.id }}">Quantity</label>
+                                    <input id="order-qty-{{ dish.id }}" name="quantity" type="number" min="1" max="{{ dish.quantity_available }}" value="1">
+                                    <button type="submit">Add to cart</button>
+                                </form>
+                            </div>
+                        </details>
                     </article>
                 {% empty %}
                     <article class="role-card">
@@ -161,6 +170,9 @@
                                 Not assigned yet
                             {% endif %}
                         </span>
+                        {% if order.status != "delivered" %}
+                            <span>Delivery OTP: {{ order.delivery_otp }}</span>
+                        {% endif %}
                     </div>
                 {% empty %}
                     <div>

@@ -61,6 +61,7 @@
                         <p><strong>Quantity:</strong> {{ order.quantity }}</p>
                         <p><strong>Total:</strong> Rs. {{ order.total_price }}</p>
                         <p><strong>Current Status:</strong> {{ order.get_status_display }}</p>
+                        <p><strong>Delivery OTP:</strong> {{ order.delivery_otp }}</p>
                         <p><strong>Placed:</strong> {{ order.created_at }}</p>
                     </article>
                 {% empty %}

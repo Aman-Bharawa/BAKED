@@ -10,6 +10,7 @@ class DishForm(forms.ModelForm):
             "name",
             "description",
             "meal_slot",
+            "main_ingredient_amount",
             "price",
             "quantity_available",
             "media",
@@ -17,8 +18,12 @@ class DishForm(forms.ModelForm):
         ]
         widgets = {
             "description": forms.Textarea(
-                attrs={"rows": 3, "placeholder": "Share what makes this dish special today."}
+                attrs={
+                    "rows": 3,
+                    "placeholder": "Example: Main ingredient: chicken. Share what makes this dish special today.",
+                }
             ),
+            "main_ingredient_amount": forms.NumberInput(attrs={"min": "1", "step": "1"}),
             "price": forms.NumberInput(attrs={"min": "1", "step": "0.01"}),
             "quantity_available": forms.NumberInput(attrs={"min": "1"}),
         }
@@ -29,6 +34,8 @@ class DishForm(forms.ModelForm):
             {"placeholder": "Paneer Paratha"}
         )
         self.fields["meal_slot"].widget.attrs.update({"class": "role-select"})
+        self.fields["main_ingredient_amount"].widget.attrs.update({"placeholder": "120"})
         self.fields["price"].widget.attrs.update({"placeholder": "120"})
         self.fields["quantity_available"].widget.attrs.update({"placeholder": "10"})
         self.fields["media"].required = False
+        self.fields["main_ingredient_amount"].required = False
