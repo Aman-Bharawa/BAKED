@@ -44,6 +44,7 @@ Handles:
 - meal slots
 - media upload
 - AI-nutrition generation
+- chef-entered main ingredient amount
 - sold-out handling
 
 ### `orders`
@@ -95,6 +96,8 @@ Stores:
 - quantity
 - total price
 - current status
+- pickup OTP
+- delivery OTP
 
 ### Notification
 
@@ -125,6 +128,13 @@ The project uses a local heuristic nutrition pipeline.
 
 When a HomeChef creates a dish, the backend reads the dish name and description and evaluates food-related keywords. It first checks for a base dish type such as `paratha`, `rice`, `wrap`, `salad`, or `dessert` and assigns a starting calorie estimate. After that, it looks for ingredient and cooking-method keywords such as `paneer`, `chicken`, `egg`, `dal`, `fried`, `grilled`, `boiled`, `butter`, `cream`, `ghee`, `keto`, and `avocado`.
 
+The chef can also enter:
+
+- main ingredient amount in `g/ml`
+- main ingredient name in the description using a format like `Main ingredient: chicken`
+
+This helps the heuristic estimate calories in a more portion-aware way. For example, a `chicken sandwich` and `butter chicken` are no longer treated with the same flat chicken calories because the heuristic now considers dish type and ingredient amount.
+
 Using these detected keywords, the system calculates:
 - estimated calories
 - health score
@@ -139,7 +149,7 @@ This design was chosen because it is simple, deterministic, explainable, and doe
 
 ## Ordering Design
 
-Within the society residents can browse all live dishes 
+Residents can browse all live dishes across all locations.
 
 The resident flow is:
 
@@ -158,10 +168,15 @@ Rules:
 
 - to accpet the order riders must be online
 - riders can only have one active order at a time
-- assigned jobs and nearby open jobs are shown on the rider page
+- nearby open jobs are shown on the rider page
 - nearby means `<= 2 km` from the HomeChef pickup point
 
-If no rider is auto-assigned, a free nearby rider can still claim the open job.
+Orders are not auto-assigned. A nearby online rider accepts the order manually from the rider page.
+
+The final handoff flow also uses OTP verification:
+
+- HomeChef verifies rider pickup using pickup OTP
+- Resident verifies final delivery using delivery OTP
 
 ## Distance Logic
 
@@ -173,7 +188,7 @@ because the project is an MVP
 Current limitations if scaled heavily:
 
 - SQLite is not ideal for concurrent writes
-- rider assignment runs synchronously during request handling
+- nearby rider discovery still runs synchronously during request handling
 - notifications are stored and shown in-app only
 - only have COD as a payment mode
 - Feedback option is not available
